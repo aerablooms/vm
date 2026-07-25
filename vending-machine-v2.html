@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ViTz VENDING UNIT — 03</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Baloo+2:wght@500;700;800&family=VT323&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+  :root{
+    --purple-0:#1c1030;
+    --purple-1:#2c1a4a;
+    --purple-2:#3d2266;
+    --body-red:#e8463c;
+    --body-red-dk:#b52d26;
+    --cream:#fff4e1;
+    --cream-dk:#e9d9b8;
+    --ink:#1a1420;
+    --led:#ff5a3c;
+    --led-dim:#402015;
+    --c-a:#2bd6c2;   --c-a-dk:#0f7a6d;
+    --c-b:#9ee23f;   --c-b-dk:#5f9016;
+    --c-c:#ffc548;   --c-c-dk:#c98a12;
+    --glass:#0e1e22;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; min-height:100%;
+    background:
+      radial-gradient(circle at 50% 0%, var(--purple-2) 0%, var(--purple-1) 45%, var(--purple-0) 100%);
+    color:var(--cream);
+    font-family:'Baloo 2', sans-serif;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* ---------- ambient backdrop ---------- */
+  #confetti-canvas{
+    position:fixed; inset:0; width:100%; height:100%;
+    pointer-events:none; z-index:50;
+  }
+  .bg-dots{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image: radial-gradient(rgba(255,255,255,0.10) 2px, transparent 2px);
+    background-size: 34px 34px;
+    animation: driftDots 24s linear infinite;
+  }
+  @keyframes driftDots{ from{background-position:0 0;} to{background-position:0 -680px;} }
+
+  .blob{
+    position:fixed; border-radius:50%;
+    filter:blur(50px); opacity:0.35; z-index:0; pointer-events:none;
+  }
+  .blob.b1{ width:340px; height:340px; background:#ff5fa2; top:-80px; left:-100px; }
+  .blob.b2{ width:300px; height:300px; background:#2bd6c2; bottom:-100px; right:-90px; }
+  .blob.b3{ width:260px; height:260px; background:#9ee23f; bottom:20%; left:-120px; }
+
+  .stage{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:56px 16px 100px;
+    position:relative;
+    z-index:2;
+  }
+
+  .floor-glow{
+    position:absolute;
+    bottom:40px; left:50%;
+    transform:translateX(-50%);
+    width:560px; height:120px;
+    background:radial-gradient(ellipse at center, rgba(255,255,255,0.18), transparent 70%);
+    filter:blur(4px);
+    pointer-events:none;
+  }
+
+  /* ---------- MARQUEE SIGN ---------- */
+  .sign-wrap{
+    margin-bottom:26px;
+    text-align:center;
+    position:relative;
+    z-index:3;
+  }
+  .marquee{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding:14px 30px;
+    background:linear-gradient(180deg,#ffd873,#ffb238);
+    border:5px solid var(--ink);
+    border-radius:20px;
+    box-shadow:0 8px 0 var(--ink), 0 14px 22px rgba(0,0,0,0.45);
+    animation: signBob 3.4s ease-in-out infinite;
+  }
+  @keyframes signBob{ 0%,100%{transform:translateY(0) rotate(-0.6deg);} 50%{transform:translateY(-6px) rotate(0.6deg);} }
+
+  .bulb{
+    width:9px; height:9px; border-radius:50%;
+    background:#fff7d6;
+    box-shadow:0 0 6px 2px rgba(255,247,214,0.9);
+  }
+  .bulb-row{ display:flex; gap:6px; }
+  .bulb-row.top{ position:absolute; top:-16px; left:14px; right:14px; justify-content:space-between; }
+  .bulb-row.bottom{ position:absolute; bottom:-16px; left:14px; right:14px; justify-content:space-between; }
+
+  .sign-text{
+    font-family:'Bungee', 'Baloo 2', sans-serif;
+    font-size:26px;
+    color:#e8463c;
+    -webkit-text-stroke:2px var(--ink);
+    letter-spacing:1px;
+  }
+  .sign-sub{
+    display:block;
+    margin-top:10px;
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:4px;
+    color:#d8c7ff;
+  }
+
+  /* ---------- MACHINE ---------- */
+  .machine-wrap{
+    position:relative;
+    animation: machineIdle 5s ease-in-out infinite;
+  }
+  @keyframes machineIdle{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);} }
+
+  .machine{
+    width:min(92vw, 480px);
+    background:linear-gradient(180deg, #ff6259 0%, var(--body-red) 55%, var(--body-red-dk) 100%);
+    border:6px solid var(--ink);
+    border-radius:26px;
+    padding:18px 18px 24px;
+    box-shadow:
+      0 20px 0 var(--body-red-dk),
+      0 30px 46px rgba(0,0,0,0.55),
+      inset 0 4px 0 rgba(255,255,255,0.25);
+    position:relative;
+    z-index:2;
+  }
+
+  .ear{
+    position:absolute; top:-14px;
+    width:34px; height:34px;
+    background:var(--body-red);
+    border:6px solid var(--ink);
+    border-radius:50%;
+    box-shadow: inset 0 3px 0 rgba(255,255,255,0.25);
+  }
+  .ear.left{ left:26px; }
+  .ear.right{ right:26px; }
+
+  .brand-strip{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:2px 8px 12px;
+    font-family:'Bungee', sans-serif;
+    font-size:10px;
+    color:var(--cream);
+    letter-spacing:1px;
+  }
+  .brand-strip .model{ color:#ffe27a; }
+
+  /* ---------- LED DISPLAY ---------- */
+  .led-panel{
+    background:var(--ink);
+    border:4px solid #000;
+    border-radius:10px;
+    padding:10px 14px;
+    margin-bottom:12px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px;
+    box-shadow:inset 0 3px 8px rgba(0,0,0,0.7);
+  }
+  .led-text{
+    font-family:'VT323', monospace;
+    font-size:21px;
+    letter-spacing:3px;
+    color:var(--led-dim);
+    white-space:nowrap;
+    overflow:hidden;
+  }
+  .led-text.active{
+    color:var(--led);
+    text-shadow:0 0 6px rgba(255,90,60,0.9), 0 0 16px rgba(255,90,60,0.5);
+  }
+  .led-dot{ width:9px; height:9px; border-radius:50%; background:var(--led-dim); flex:0 0 auto; }
+  .led-dot.on{ background:var(--led); box-shadow:0 0 9px var(--led); }
+
+  /* ---------- GLASS WINDOW (face) ---------- */
+  .window-frame{
+    background:var(--ink);
+    border-radius:16px;
+    padding:10px;
+    margin-bottom:14px;
+    box-shadow:inset 0 0 0 3px #000;
+  }
+  .window{
+    position:relative;
+    background:radial-gradient(120% 100% at 50% 0%, #163539 0%, var(--glass) 70%);
+    border-radius:12px;
+    padding:16px 10px 12px;
+    overflow:hidden;
+  }
+  .window::before{
+    content:"";
+    position:absolute; top:-10%; left:-25%;
+    width:40%; height:150%;
+    background:linear-gradient(100deg, rgba(255,255,255,0.10), transparent 60%);
+    transform:skewX(-14deg);
+    pointer-events:none;
+    animation: sheenPass 6s ease-in-out infinite;
+  }
+  @keyframes sheenPass{ 0%,80%,100%{ left:-25%; } 40%{ left:110%; } }
+
+  .shelf-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; position:relative; z-index:1; }
+
+  .slot{
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    cursor:pointer;
+    padding:10px 6px 8px;
+    border-radius:14px;
+    border:3px solid transparent;
+    transition:border-color .2s ease, background .2s ease, transform .15s ease;
+    position:relative;
+  }
+  .slot:hover{ transform:translateY(-3px); }
+  .slot.selected{
+    border-color:var(--sel-color, var(--c-a));
+    background:rgba(255,255,255,0.06);
+    box-shadow:0 0 18px var(--sel-color, var(--c-a));
+  }
+  .slot.dispensed .item-art{ opacity:0.3; filter:grayscale(0.7); }
+  .slot.dispensed::after{
+    content:"SOLD";
+    position:absolute; top:44%; left:50%;
+    transform:translate(-50%,-50%) rotate(-10deg);
+    font-family:'Bungee', sans-serif;
+    font-size:10px; letter-spacing:1px;
+    color:#ff6b5b;
+    border:2px solid #ff6b5b;
+    border-radius:4px;
+    padding:2px 6px;
+    background:rgba(10,10,10,0.65);
+  }
+
+  .item-art{ display:block; filter:drop-shadow(0 4px 4px rgba(0,0,0,0.4)); }
+  .item-art path, .item-art circle, .item-art rect, .item-art ellipse{ stroke:var(--ink); stroke-width:3; stroke-linejoin:round; }
+
+  .item-code{
+    font-family:'Bungee', sans-serif;
+    font-size:10px;
+    color:#a9c4c9;
+    letter-spacing:1px;
+  }
+  .slot.selected .item-code{ color:var(--sel-color, var(--c-a)); }
+
+  .item-label{ font-size:14px; line-height:1.15; text-align:center; color:#cfe4e7; font-weight:700; min-height:32px; }
+
+  .coil{
+    width:36px; height:8px;
+    background:repeating-linear-gradient(90deg, #6c8b8f 0 3px, transparent 3px 6px);
+    border-radius:4px;
+    opacity:0.5;
+  }
+
+  /* ---------- TRAY ---------- */
+  .tray-frame{ background:var(--ink); border-radius:14px; padding:10px; margin-bottom:14px; box-shadow:inset 0 0 0 3px #000; }
+  .tray{
+    height:84px;
+    border-radius:10px;
+    background:linear-gradient(180deg,#0a0a0c,#151519);
+    box-shadow:inset 0 10px 16px rgba(0,0,0,0.75);
+    position:relative;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  .tray-flap{
+    position:absolute; top:0; left:0; right:0; height:16px;
+    background:linear-gradient(180deg, #8b8f9a, #4c505c);
+    border-bottom:3px solid #000;
+    transform-origin:top center;
+    z-index:5;
+  }
+  .tray-hint{ font-size:14px; letter-spacing:2px; color:#4a4e57; font-family:'Baloo 2'; font-weight:700; }
+  .dropped-item{ position:absolute; top:-40px; filter:drop-shadow(0 4px 4px rgba(0,0,0,0.5)); }
+  .dropped-item path, .dropped-item circle, .dropped-item rect, .dropped-item ellipse{ stroke:var(--ink); stroke-width:3; stroke-linejoin:round; }
+
+  .pop-star{ position:absolute; pointer-events:none; z-index:7; }
+
+  /* receipt / ticket */
+  .receipt{
+    position:absolute;
+    bottom:-160px; left:8px; right:8px;
+    background:var(--cream);
+    color:var(--ink);
+    border-radius:6px 6px 14px 14px;
+    padding:12px 14px 14px;
+    box-shadow:0 10px 22px rgba(0,0,0,0.55);
+    z-index:6;
+    border:3px solid var(--ink);
+  }
+  .receipt::before{
+    content:"";
+    position:absolute; top:-3px; left:-3px; right:-3px; height:8px;
+    background:repeating-linear-gradient(90deg, var(--cream) 0 7px, var(--ink) 7px 9px);
+  }
+  .receipt-title{ font-family:'Bungee', sans-serif; font-size:11px; letter-spacing:0.5px; margin-bottom:6px; }
+  .receipt-desc{ font-size:16px; line-height:1.25; margin-bottom:10px; color:#4a4438; font-weight:600; }
+  .receipt-btn{
+    display:inline-block;
+    font-family:'Bungee', sans-serif;
+    font-size:10px; letter-spacing:1px;
+    background:var(--c-b);
+    color:var(--ink);
+    padding:9px 14px;
+    border-radius:8px;
+    text-decoration:none;
+    border:3px solid var(--ink);
+    box-shadow:0 4px 0 var(--c-b-dk);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .receipt-btn:hover{ transform:translateY(2px); box-shadow:0 2px 0 var(--c-b-dk); }
+  .receipt-btn:active{ transform:translateY(4px); box-shadow:0 0 0 var(--c-b-dk); }
+  .receipt-code{ float:right; font-size:11px; color:#8a8471; font-family:'VT323'; }
+
+  /* ---------- CONTROLS ---------- */
+  .controls{ display:flex; gap:14px; align-items:stretch; }
+  .keypad{
+    flex:1; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+    background:var(--ink); border-radius:14px; padding:10px;
+  }
+  .key{
+    font-family:'Bungee', sans-serif;
+    font-size:11px; color:var(--ink);
+    background:linear-gradient(180deg, #fff, #dcdcdc);
+    border:3px solid var(--ink);
+    border-radius:8px;
+    padding:13px 0;
+    cursor:pointer;
+    box-shadow:0 4px 0 #7a7a7a;
+    transition:transform .06s ease, box-shadow .06s ease;
+  }
+  .key:active{ transform:translateY(4px); box-shadow:0 0 0 #7a7a7a; }
+  .key.selected{ color:var(--ink); background:var(--sel-color,var(--c-a)); box-shadow:0 4px 0 var(--sel-dk,var(--c-a-dk)); }
+
+  .dispense-col{
+    width:100px; display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    background:var(--ink); border-radius:14px; padding:10px;
+  }
+  .coin-slot{
+    width:40px; height:11px; background:#000; border-radius:4px;
+    box-shadow:inset 0 3px 3px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.1);
+    margin-bottom:8px; position:relative; overflow:visible;
+    cursor:pointer;
+  }
+  .coin{
+    position:absolute; width:18px; height:18px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #fff2b0, #ffc548 65%, #c98a12 100%);
+    border:2px solid var(--ink);
+    top:-30px; left:11px;
+    display:none;
+  }
+  .go-btn{
+    width:68px; height:68px; border-radius:50%; border:4px solid var(--ink); cursor:pointer;
+    background:radial-gradient(circle at 35% 30%, #7fe86f, #46b83a 65%, #2a7a22 100%);
+    box-shadow:0 6px 0 #1f5c1a, inset 0 3px 5px rgba(255,255,255,0.4);
+    font-family:'Bungee', sans-serif;
+    font-size:10px; color:#0e2e0b;
+    transition:transform .06s ease, box-shadow .06s ease;
+  }
+  .go-btn:active{ transform:translateY(6px); box-shadow:0 0 0 #1f5c1a, inset 0 3px 5px rgba(255,255,255,0.4); }
+  .go-btn:disabled{ filter:grayscale(0.7) brightness(0.6); cursor:not-allowed; }
+  .go-label{ margin-top:8px; font-size:11px; letter-spacing:2px; color:#cfd2da; font-weight:700; }
+
+  /* legs */
+  .legs{ display:flex; justify-content:space-between; width:min(92vw, 480px); padding:0 34px; }
+  .leg{ width:18px; height:18px; background:var(--ink); border-radius:0 0 6px 6px; }
+
+  .credit{
+    margin-top:28px;
+    font-family:'Bungee', sans-serif;
+    font-size:13px;
+    letter-spacing:2px;
+    color:#d8c7ff;
+    text-align:center;
+  }
+  .credit b{ color:#ffe27a; }
+
+  @media (max-width:420px){
+    .sign-text{font-size:18px;}
+    .item-label{font-size:12px;}
+    .go-btn{width:58px;height:58px;font-size:9px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+<div class="bg-dots"></div>
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+<div class="blob b3"></div>
+
+<div class="stage">
+  <div class="floor-glow"></div>
+
+  <div class="sign-wrap">
+    <div class="marquee">
+      <div class="bulb-row top" id="bulbTop"></div>
+      <span class="sign-text">ViTz ARCADE</span>
+      <div class="bulb-row bottom" id="bulbBottom"></div>
+    </div>
+    <span class="sign-sub">SELF-SERVE PROJECT UNIT</span>
+  </div>
+
+  <div class="machine-wrap">
+  <div class="machine" id="machine">
+    <span class="ear left"></span><span class="ear right"></span>
+
+    <div class="brand-strip">
+      <span>UNIT NO.03</span>
+      <span class="model">MDL PDC-X</span>
+    </div>
+
+    <div class="led-panel">
+      <div class="led-text" id="ledText">SELECT ITEM&#9608;</div>
+      <div class="led-dot" id="ledDot"></div>
+    </div>
+
+    <div class="window-frame">
+      <div class="window">
+        <div class="shelf-row">
+          <div class="slot" data-key="A1" data-color="#2bd6c2" data-color-dk="#0f7a6d" id="slotA1">
+            <svg class="item-art" width="52" height="52" viewBox="0 0 64 64"></svg>
+            <div class="item-code">A1</div>
+            <div class="item-label">More<br>Explanation</div>
+            <div class="coil"></div>
+          </div>
+          <div class="slot" data-key="A2" data-color="#9ee23f" data-color-dk="#5f9016" id="slotA2">
+            <svg class="item-art" width="52" height="52" viewBox="0 0 64 64"></svg>
+            <div class="item-code">A2</div>
+            <div class="item-label">Environmentalist<br>Bureau Officer</div>
+            <div class="coil"></div>
+          </div>
+          <div class="slot" data-key="A3" data-color="#ffc548" data-color-dk="#c98a12" id="slotA3">
+            <svg class="item-art" width="52" height="52" viewBox="0 0 64 64"></svg>
+            <div class="item-code">A3</div>
+            <div class="item-label">Dashboard<br>Only</div>
+            <div class="coil"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tray-frame">
+      <div class="tray" id="tray">
+        <div class="tray-flap" id="trayFlap"></div>
+        <div class="tray-hint">TRAY EMPTY</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="keypad" id="keypad">
+        <button class="key" data-key="A1">A1</button>
+        <button class="key" data-key="A2">A2</button>
+        <button class="key" data-key="A3">A3</button>
+      </div>
+      <div class="dispense-col">
+        <div class="coin-slot" id="coinSlot"><div class="coin" id="coin"></div></div>
+        <button class="go-btn" id="goBtn" disabled>GET</button>
+        <div class="go-label">PRESS</div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div class="legs"><div class="leg"></div><div class="leg"></div></div>
+
+  <div class="credit">MACHINE CRAFTED BY <b>ViTz</b></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- marquee chasing bulbs ---------------- */
+  function buildBulbs(container, count){
+    for(let i=0;i<count;i++){
+      const b = document.createElement("div");
+      b.className = "bulb";
+      container.appendChild(b);
+    }
+  }
+  const bulbTop = document.getElementById("bulbTop");
+  const bulbBottom = document.getElementById("bulbBottom");
+  buildBulbs(bulbTop, 7);
+  buildBulbs(bulbBottom, 7);
+  const allBulbs = [...bulbTop.children, ...bulbBottom.children];
+  let bulbTick = 0;
+  setInterval(()=>{
+    allBulbs.forEach((b,i)=>{
+      const on = (i + bulbTick) % 3 === 0;
+      b.style.background = on ? "#fff9c4" : "#7a6a3a";
+      b.style.boxShadow = on ? "0 0 10px 3px rgba(255,247,180,0.95)" : "none";
+    });
+    bulbTick++;
+  }, 260);
+
+  /* ---------------- cartoon SVG item art (64x64, chunky outlined shapes) ---------------- */
+  const ART = {
+    A1: `
+      <g>
+        <path d="M32 14 C20 10 10 12 8 16 L8 46 C10 43 20 41 32 45 C44 41 54 43 56 46 L56 16 C54 12 44 10 32 14 Z" fill="#eef3f2"/>
+        <path d="M32 14 L32 45" fill="none" stroke="#0f7a6d" stroke-width="3"/>
+        <path d="M14 20 C20 18 26 19 30 21" fill="none" stroke="#2bd6c2" stroke-width="3" stroke-linecap="round"/>
+        <path d="M14 27 C20 25 26 26 30 28" fill="none" stroke="#2bd6c2" stroke-width="3" stroke-linecap="round"/>
+        <path d="M14 34 C20 32 26 33 30 35" fill="none" stroke="#2bd6c2" stroke-width="3" stroke-linecap="round"/>
+        <path d="M34 21 C38 19 44 18 50 20" fill="none" stroke="#2bd6c2" stroke-width="3" stroke-linecap="round"/>
+        <path d="M34 28 C38 26 44 25 50 27" fill="none" stroke="#2bd6c2" stroke-width="3" stroke-linecap="round"/>
+        <path d="M34 35 C38 33 44 32 50 34" fill="none" stroke="#2bd6c2" stroke-width="3" stroke-linecap="round"/>
+      </g>`,
+    A2: `
+      <g>
+        <path d="M32 54 L32 30" stroke="#5f9016" stroke-width="5" stroke-linecap="round"/>
+        <path d="M32 34 C18 30 14 16 14 16 C14 16 26 14 32 26 Z" fill="#9ee23f"/>
+        <path d="M32 34 C46 30 50 16 50 16 C50 16 38 14 32 26 Z" fill="#c3f57a"/>
+        <ellipse cx="32" cy="56" rx="14" ry="4" fill="#5f9016" opacity="0.5" stroke="none"/>
+      </g>`,
+    A3: `
+      <g>
+        <rect x="10" y="14" width="44" height="30" rx="4" fill="#2c2f38"/>
+        <rect x="15" y="19" width="34" height="20" rx="2" fill="#ffc548"/>
+        <rect x="18" y="23" width="12" height="4" fill="#c98a12" stroke="none"/>
+        <rect x="18" y="29" width="20" height="4" fill="#c98a12" stroke="none"/>
+        <rect x="18" y="35" width="8" height="3" fill="#c98a12" stroke="none"/>
+        <rect x="27" y="44" width="10" height="6" fill="#2c2f38"/>
+        <rect x="18" y="50" width="28" height="4" rx="2" fill="#2c2f38"/>
+      </g>`
+  };
+
+  document.querySelectorAll(".slot").forEach(slot=>{
+    const key = slot.dataset.key;
+    const svg = slot.querySelector(".item-art");
+    svg.innerHTML = ART[key];
+    slot.style.setProperty("--sel-color", slot.dataset.color);
+    slot.style.setProperty("--sel-dk", slot.dataset.colorDk);
+  });
+
+  /* ---------------- product data ---------------- */
+  const PRODUCTS = {
+    A1: { name:"MORE EXPLANATION", desc:"Extended write-up and context behind the project.",
+      url:"https://aerablooms.github.io/pdc/", code:"A1-EXP" },
+    A2: { name:"ENVIRONMENTALIST BUREAU OFFICER SIMULATOR", desc:"Step into the role and process the paperwork of the planet.",
+      url:"https://aerablooms.github.io/pdc3/", code:"A2-EBO" },
+    A3: { name:"DASHBOARD ONLY", desc:"A focused, standalone dashboard build.",
+      url:"https://aerablooms.github.io/pdc2/", code:"A3-DSH" }
+  };
+
+  let selected = null;
+  let busy = false;
+  const ledText  = document.getElementById("ledText");
+  const ledDot   = document.getElementById("ledDot");
+  const goBtn    = document.getElementById("goBtn");
+  const tray     = document.getElementById("tray");
+  const trayFlap = document.getElementById("trayFlap");
+  const keys     = document.querySelectorAll(".key");
+  const slots    = document.querySelectorAll(".slot");
+  const coinSlot = document.getElementById("coinSlot");
+  const coin     = document.getElementById("coin");
+
+  function selectKey(key){
+    if(busy) return;
+    const slot = document.getElementById("slot"+key);
+    if(slot.classList.contains("dispensed")){
+      flashLED(key + " SOLD OUT", true);
+      return;
+    }
+    selected = key;
+    keys.forEach(k=>{
+      const on = k.dataset.key===key;
+      k.classList.toggle("selected", on);
+    });
+    slots.forEach(s=>s.classList.toggle("selected", s.dataset.key===key));
+    ledText.textContent = key + "  " + PRODUCTS[key].name;
+    ledText.classList.add("active");
+    ledDot.classList.add("on");
+    goBtn.disabled = false;
+
+    // playful coin drop preview
+    gsap.killTweensOf(coin);
+    coin.style.display = "block";
+    gsap.fromTo(coin, {y:-30, opacity:0, rotate:0}, {y:0, opacity:1, rotate:360, duration:0.5, ease:"bounce.out"});
+    gsap.to(coin, {opacity:0, duration:0.3, delay:0.6});
+  }
+
+  keys.forEach(k=>k.addEventListener("click", ()=>selectKey(k.dataset.key)));
+  slots.forEach(s=>s.addEventListener("click", ()=>selectKey(s.dataset.key)));
+
+  function flashLED(msg, warn){
+    const prevActive = ledText.classList.contains("active");
+    const prev = ledText.textContent;
+    ledText.textContent = msg;
+    if(warn){
+      gsap.fromTo(ledText, {x:-5},{x:0,duration:0.06,repeat:5,yoyo:true, ease:"none"});
+      gsap.fromTo("#machine", {x:-3},{x:0,duration:0.05,repeat:7,yoyo:true, ease:"none"});
+    }
+    setTimeout(()=>{
+      ledText.textContent = prev;
+      if(!prevActive) ledText.classList.remove("active");
+    }, 1100);
+  }
+
+  /* ---------------- confetti burst (canvas) ---------------- */
+  const canvas = document.getElementById("confetti-canvas");
+  const ctx = canvas.getContext("2d");
+  function resizeCanvas(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  resizeCanvas();
+  window.addEventListener("resize", resizeCanvas);
+
+  let particles = [];
+  const COLORS = ["#ff5fa2","#2bd6c2","#9ee23f","#ffc548","#ffffff","#c084ff"];
+
+  function burstConfetti(originX, originY, count){
+    for(let i=0;i<count;i++){
+      const angle = Math.random()*Math.PI*2;
+      const speed = 3 + Math.random()*6;
+      particles.push({
+        x:originX, y:originY,
+        vx:Math.cos(angle)*speed*0.6,
+        vy:Math.sin(angle)*speed - 4,
+        size:4+Math.random()*5,
+        color:COLORS[Math.floor(Math.random()*COLORS.length)],
+        rot:Math.random()*360,
+        vr:(Math.random()-0.5)*18,
+        life:0,
+        maxLife:60+Math.random()*40
+      });
+    }
+  }
+
+  function animateConfetti(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      p.vy += 0.18; // gravity
+      p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life++;
+      const alpha = Math.max(0, 1 - p.life/p.maxLife);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot*Math.PI/180);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size/2, -p.size/3, p.size, p.size*0.6);
+      ctx.restore();
+    });
+    particles = particles.filter(p=>p.life < p.maxLife && p.y < canvas.height + 40);
+    requestAnimationFrame(animateConfetti);
+  }
+  animateConfetti();
+
+  /* ---------------- comic "POP!" star burst ---------------- */
+  function popStar(container){
+    const star = document.createElementNS("http://www.w3.org/2000/svg","svg");
+    star.setAttribute("class","pop-star");
+    star.setAttribute("width","90");
+    star.setAttribute("height","90");
+    star.setAttribute("viewBox","0 0 100 100");
+    star.style.left = "50%";
+    star.style.top = "0%";
+    star.style.transform = "translate(-50%,-50%) scale(0)";
+    star.innerHTML = `
+      <polygon points="50,4 61,35 94,35 67,55 78,90 50,68 22,90 33,55 6,35 39,35"
+        fill="#ffe27a" stroke="#1a1420" stroke-width="4" stroke-linejoin="round"/>
+      <text x="50" y="58" text-anchor="middle" font-family="Bungee, sans-serif" font-size="17" fill="#e8463c" stroke="#1a1420" stroke-width="1.5">POP!</text>
+    `;
+    container.appendChild(star);
+    gsap.timeline({ onComplete:()=>star.remove() })
+      .to(star, {scale:1.15, duration:0.22, ease:"back.out(3)"}, 0)
+      .to(star, {rotate:-8, duration:0.22, ease:"back.out(3)"}, 0)
+      .to(star, {scale:0, opacity:0, duration:0.3, ease:"power1.in"}, 0.45);
+  }
+
+  /* ---------------- dispense sequence ---------------- */
+  goBtn.addEventListener("click", ()=>{
+    if(!selected || busy) return;
+    const key = selected;
+    const slot = document.getElementById("slot"+key);
+    if(slot.classList.contains("dispensed")) return;
+
+    busy = true;
+    goBtn.disabled = true;
+    ledText.classList.add("active");
+
+    const tl = gsap.timeline({ onComplete: ()=>{ busy = false; } });
+
+    tl.to(goBtn, {scale:0.88, duration:0.08, yoyo:true, repeat:1, ease:"power1.inOut"});
+    tl.to("#machine", {rotate:-1, duration:0.06, yoyo:true, repeat:1, ease:"none"}, "<");
+
+    let dots = 0;
+    const dotTimer = setInterval(()=>{
+      dots = (dots+1)%4;
+      ledText.textContent = "DISPENSING" + ".".repeat(dots);
+    }, 200);
+
+    tl.to("#machine", {x:2.2, duration:0.045, repeat:11, yoyo:true, ease:"none"}, "+=0.15");
+    tl.to(tray.querySelector(".tray-hint"), {opacity:0, duration:0.15}, "<");
+    tl.to(trayFlap, {rotateX:-72, duration:0.22, ease:"power2.out"}, "-=0.1");
+
+    tl.add(()=>{
+      clearInterval(dotTimer);
+      slot.classList.add("dispensed");
+
+      const clone = document.createElementNS("http://www.w3.org/2000/svg","svg");
+      clone.setAttribute("width","46");
+      clone.setAttribute("height","46");
+      clone.setAttribute("viewBox","0 0 64 64");
+      clone.classList.add("dropped-item");
+      clone.innerHTML = ART[key];
+      tray.appendChild(clone);
+
+      gsap.set(clone, {x:-10, y:-46, rotation:0, scale:1});
+      gsap.timeline()
+        .to(clone, {y:18, duration:0.4, ease:"bounce.out", rotation:250})
+        .to(clone, {scaleX:1.25, scaleY:0.75, duration:0.08, ease:"power1.out"})
+        .to(clone, {scaleX:1, scaleY:1, duration:0.18, ease:"elastic.out(1,0.4)"})
+        .to(clone, {y:15, duration:0.2, ease:"power1.inOut"}, "-=0.05");
+
+      popStar(tray);
+
+      const rect = tray.getBoundingClientRect();
+      burstConfetti(rect.left + rect.width/2, rect.top + 20, 46);
+    });
+
+    tl.to(trayFlap, {rotateX:0, duration:0.2, ease:"power1.in"}, "+=0.28");
+
+    tl.add(()=>{
+      const p = PRODUCTS[key];
+      const receipt = document.createElement("div");
+      receipt.className = "receipt";
+      receipt.innerHTML = `
+        <div class="receipt-title">${p.name} <span class="receipt-code">${p.code}</span></div>
+        <div class="receipt-desc">${p.desc}</div>
+        <a class="receipt-btn" href="${p.url}" target="_blank" rel="noopener">OPEN PROJECT</a>
+      `;
+      tray.appendChild(receipt);
+      gsap.to(receipt, {bottom:0, duration:0.55, ease:"back.out(1.5)"});
+    }, "+=0.05");
+
+    tl.add(()=>{
+      ledText.textContent = "ENJOY — " + key;
+      setTimeout(()=>{
+        if(selected===key){ ledText.textContent = key + "  " + PRODUCTS[key].name; }
+      }, 1400);
+    });
+  });
+
+  /* manual coin slot click = fun easter-egg toss */
+  coinSlot.addEventListener("click", ()=>{
+    gsap.killTweensOf(coin);
+    coin.style.display = "block";
+    gsap.fromTo(coin, {y:-30, opacity:0, rotate:0}, {y:0, opacity:1, rotate:360, duration:0.5, ease:"bounce.out"});
+    gsap.to(coin, {opacity:0, duration:0.3, delay:0.6});
+  });
+
+  /* keyboard support */
+  window.addEventListener("keydown", (e)=>{
+    if(e.key==="1") selectKey("A1");
+    if(e.key==="2") selectKey("A2");
+    if(e.key==="3") selectKey("A3");
+    if((e.key==="Enter"||e.key===" ") && !goBtn.disabled) goBtn.click();
+  });
+
+})();
+</script>
+
+</body>
+</html>
